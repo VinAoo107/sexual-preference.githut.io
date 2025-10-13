@@ -119,12 +119,20 @@ function startAssessment() {
 // 初始化评分页面
 function initAssessment() {
     loadAllCategories();
-    loadExistingScores();
+    // 不再自动加载已有评分，让用户主动选择
 }
 
 // 加载所有分类到单个页面
 function loadAllCategories() {
     const container = document.querySelector('.assessment-container');
+    
+    // 计算总项目数
+    const allItems = [];
+    Object.values(assessmentItems).forEach(categoryData => {
+        Object.values(categoryData).forEach(items => {
+            items.forEach(item => allItems.push(item));
+        });
+    });
     
     let html = `
         <div class="all-categories">
@@ -141,6 +149,15 @@ function loadAllCategories() {
                 </div>
             </div>
             <p class="instruction">请根据您的真实感受为每个项目评分</p>
+            
+            <div class="top-navigation">
+                <button class="nav-btn save-btn" id="save-btn" onclick="saveProgress()">
+                    保存进度
+                </button>
+                <button class="nav-btn reset-btn" id="reset-btn" onclick="resetAllScores()">
+                    重置评分
+                </button>
+            </div>
     `;
     
     // 遍历所有分类
@@ -153,20 +170,40 @@ function loadAllCategories() {
         `;
     });
     
-    html += `
-        </div>
-        
-        <div class="navigation">
-            <button class="nav-btn" id="complete-btn" onclick="completeAssessment()">
-                完成评分
-            </button>
-        </div>
-    `;
+            html += `
+                </div>
+                
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <span id="progress-text">评分进度: 0 / ${allItems.length}</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bottom-navigation">
+                    <button class="nav-btn" id="complete-btn" onclick="completeAssessment()">
+                        完成评分
+                    </button>
+                </div>
+            `;
     
     container.innerHTML = html;
     
     // 绑定评分按钮事件
     bindScoreButtons();
+    
+    // 更新进度显示
+    updateProgress();
+    
+    // 询问是否要恢复保存的进度
+    const savedScores = localStorage.getItem('assessmentScores');
+    if (savedScores) {
+        if (confirm('检测到您之前保存的评分进度，是否要恢复？\n\n点击"确定"恢复之前的评分\n点击"取消"从空白状态开始')) {
+            loadSavedScores();
+        }
+    }
 }
 
 // 绑定评分按钮事件
@@ -183,6 +220,23 @@ function bindScoreButtons() {
 
 // 完成评分
 function completeAssessment() {
+    // 检查是否所有项目都已评分
+    const allItems = [];
+    Object.values(assessmentItems).forEach(categoryData => {
+        Object.values(categoryData).forEach(items => {
+            items.forEach(item => allItems.push(item));
+        });
+    });
+    
+    const unratedItems = allItems.filter(item => !assessmentData.scores[item]);
+    
+    if (unratedItems.length > 0) {
+        // 高亮显示未评分的项目
+        highlightUnratedItems(unratedItems);
+        alert(`请完成所有项目的评分！\n\n还有 ${unratedItems.length} 个项目未评分：\n${unratedItems.slice(0, 5).join('\n')}${unratedItems.length > 5 ? '\n...' : ''}`);
+        return;
+    }
+    
     // 保存评分数据
     localStorage.setItem('assessmentScores', JSON.stringify(assessmentData.scores));
     
@@ -234,8 +288,14 @@ function setScore(item, score, event) {
     scoreButtons.forEach(btn => btn.classList.remove('selected'));
     event.target.classList.add('selected');
     
+    // 清除该项目的未评分高亮状态
+    itemElement.classList.remove('unrated');
+    
     // 保存到本地存储
     localStorage.setItem('assessmentScores', JSON.stringify(assessmentData.scores));
+    
+    // 更新进度显示
+    updateProgress();
 }
 
 // 加载已有评分
@@ -259,6 +319,140 @@ function loadExistingScores() {
                 }
             });
         });
+        
+        // 更新进度显示
+        updateProgress();
+    }
+}
+
+// 更新进度显示
+function updateProgress() {
+    // 计算总项目数
+    const allItems = [];
+    Object.values(assessmentItems).forEach(categoryData => {
+        Object.values(categoryData).forEach(items => {
+            items.forEach(item => allItems.push(item));
+        });
+    });
+    
+    const ratedCount = Object.keys(assessmentData.scores).length;
+    const totalCount = allItems.length;
+    const percentage = Math.round((ratedCount / totalCount) * 100);
+    
+    const progressText = document.getElementById('progress-text');
+    const progressFill = document.getElementById('progress-fill');
+    const completeBtn = document.getElementById('complete-btn');
+    
+    if (progressText) {
+        progressText.textContent = `评分进度: ${ratedCount} / ${totalCount}`;
+    }
+    
+    if (progressFill) {
+        progressFill.style.width = `${percentage}%`;
+    }
+    
+    if (completeBtn) {
+        if (ratedCount === totalCount) {
+            completeBtn.textContent = '完成评分 ✓';
+            completeBtn.style.background = 'linear-gradient(45deg, #00AA00, #00FF00)';
+        } else {
+            completeBtn.textContent = '完成评分';
+            completeBtn.style.background = 'linear-gradient(45deg, #FFA500, #FF8C00)';
+        }
+    }
+}
+
+// 高亮显示未评分的项目
+function highlightUnratedItems(unratedItems) {
+    const itemElements = document.querySelectorAll('.item');
+    itemElements.forEach(itemElement => {
+        const itemName = itemElement.querySelector('.item-name').textContent;
+        if (unratedItems.includes(itemName)) {
+            itemElement.classList.add('unrated');
+        } else {
+            itemElement.classList.remove('unrated');
+        }
+    });
+}
+
+// 保存进度
+function saveProgress() {
+    // 保存当前评分数据到本地存储
+    localStorage.setItem('assessmentScores', JSON.stringify(assessmentData.scores));
+    
+    // 更新保存按钮状态
+    const saveBtn = document.getElementById('save-btn');
+    if (saveBtn) {
+        saveBtn.textContent = '已保存 ✓';
+        saveBtn.style.background = 'linear-gradient(45deg, #00AA00, #00FF00)';
+        
+        // 2秒后恢复原状
+        setTimeout(() => {
+            saveBtn.textContent = '保存进度';
+            saveBtn.style.background = 'linear-gradient(45deg, #FFA500, #FF8C00)';
+        }, 2000);
+    }
+    
+    // 显示提示信息
+    alert('进度已保存！下次进入时会自动恢复您的评分。');
+}
+
+// 加载保存的评分
+function loadSavedScores() {
+    const savedScores = localStorage.getItem('assessmentScores');
+    if (savedScores) {
+        assessmentData.scores = JSON.parse(savedScores);
+        
+        // 恢复评分状态
+        Object.entries(assessmentData.scores).forEach(([item, score]) => {
+            const itemElements = document.querySelectorAll('.item');
+            itemElements.forEach(itemElement => {
+                const itemName = itemElement.querySelector('.item-name').textContent;
+                if (itemName === item) {
+                    const scoreButtons = itemElement.querySelectorAll('.score-btn');
+                    scoreButtons.forEach(btn => {
+                        if (btn.getAttribute('data-score') === score) {
+                            btn.classList.add('selected');
+                        }
+                    });
+                }
+            });
+        });
+        
+        // 更新进度显示
+        updateProgress();
+        
+        // 显示提示信息
+        alert('已恢复您之前保存的评分进度！');
+    }
+}
+
+// 重置所有评分
+function resetAllScores() {
+    if (confirm('确定要重置所有评分吗？这将清除您已选择的所有选项。')) {
+        // 清空评分数据
+        assessmentData.scores = {};
+        
+        // 清除所有按钮的选中状态
+        const scoreButtons = document.querySelectorAll('.score-btn');
+        scoreButtons.forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        
+        // 清除所有项目的未评分高亮状态
+        const itemElements = document.querySelectorAll('.item');
+        itemElements.forEach(itemElement => {
+            itemElement.classList.remove('unrated');
+        });
+        
+        // 清除本地存储
+        localStorage.removeItem('assessmentScores');
+        
+        // 更新进度显示
+        updateProgress();
+        
+        // 显示提示信息
+        alert('所有评分已重置！');
     }
 }
 
