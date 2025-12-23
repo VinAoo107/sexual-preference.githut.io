@@ -25,6 +25,7 @@
 ### 1. 启动服务器
 
 #### 方法一：使用Python（推荐）
+
 ```bash
 # 进入项目目录
 cd Sexual_Preference
@@ -37,6 +38,7 @@ python -m http.server 8080
 ```
 
 #### 方法二：使用Node.js
+
 ```bash
 # 进入项目目录
 cd Sexual_Preference
@@ -46,6 +48,7 @@ npx http-server -p 8080 -o
 ```
 
 #### 方法三：使用PowerShell
+
 ```powershell
 # 在PowerShell中运行
 powershell -Command "cd Sexual_Preference; py -m http.server 8080"
@@ -54,6 +57,7 @@ powershell -Command "cd Sexual_Preference; py -m http.server 8080"
 ### 2. 访问网站
 
 服务器启动后，在浏览器中访问：
+
 - **主页**: http://localhost:8080
 - **直接访问**: http://localhost:8080/index.html
 
@@ -99,16 +103,19 @@ Sexual_Preference/
 ## 故障排除
 
 ### 服务器启动失败
-- **Python未安装**：请安装Python 3.x
+
+- **Python未安装**：请安装Python 3.X
 - **端口被占用**：尝试使用其他端口，如 `py -m http.server 8081`
 - **权限问题**：以管理员身份运行终端
 
 ### 网站无法访问
+
 - **检查服务器状态**：确认服务器正在运行
 - **清除浏览器缓存**：按 `Ctrl+F5` 强制刷新
 - **检查防火墙**：确保8080端口未被阻止
 
 ### 评分数据丢失
+
 - **检查浏览器设置**：确保允许本地存储
 - **清除浏览器数据**：避免意外清除localStorage
 
@@ -123,12 +130,13 @@ Sexual_Preference/
 ## 开发说明
 
 ### 本地开发
+
 1. 修改代码后，刷新浏览器即可看到更新
 2. 如需强制刷新，按 `Ctrl+F5` 或 `Ctrl+Shift+R`
 3. 使用浏览器开发者工具调试JavaScript
 
 ### 部署到服务器
+
 1. 将所有文件上传到Web服务器
 2. 确保服务器支持静态文件访问
 3. 配置正确的MIME类型
-
